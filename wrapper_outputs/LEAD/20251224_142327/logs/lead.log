@@ -1,0 +1,15 @@
+Command: C:\Users\saraj\OneDrive\Documents\Documents\thesis\New folder\.venv\Scripts\python.exe C:\Users\saraj\OneDrive\Documents\Documents\thesis\New folder\LEAD\run.py --method LEAD --task_name supervised --model LEAD --model_id quick-test --is_training 0 --root_path C:\Users\saraj\OneDrive\Documents\Documents\thesis\New folder\LEAD\dataset
+Working dir: C:\Users\saraj\OneDrive\Documents\Documents\thesis\New folder\LEAD
+
+Traceback (most recent call last):
+  File "C:\Users\saraj\OneDrive\Documents\Documents\thesis\New folder\LEAD\run.py", line 4, in <module>
+    from exp.exp_supervised import Exp_Supervised
+  File "C:\Users\saraj\OneDrive\Documents\Documents\thesis\New folder\LEAD\exp\exp_supervised.py", line 2, in <module>
+    from data_provider.data_factory import data_provider
+  File "C:\Users\saraj\OneDrive\Documents\Documents\thesis\New folder\LEAD\data_provider\data_factory.py", line 1, in <module>
+    from data_provider.data_loader import MultiDatasetsLoader
+  File "C:\Users\saraj\OneDrive\Documents\Documents\thesis\New folder\LEAD\data_provider\data_loader.py", line 5, in <module>
+    from data_provider.uea import (
+  File "C:\Users\saraj\OneDrive\Documents\Documents\thesis\New folder\LEAD\data_provider\uea.py", line 6, in <module>
+    from scipy.signal import butter, lfilter, filtfilt
+ModuleNotFoundError: No module named 'scipy'

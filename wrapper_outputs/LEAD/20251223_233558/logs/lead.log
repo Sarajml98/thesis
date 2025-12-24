@@ -1,0 +1,7 @@
+Command: C:\Program Files\Python310\python.exe C:\Users\saraj\OneDrive\Documents\Documents\thesis\New folder\LEAD\run.py --method LEAD --task_name supervised --model LEAD --model_id quick-test --is_training 0 --root_path C:\Users\saraj\OneDrive\Documents\Documents\thesis\New folder\LEAD\dataset
+Working dir: C:\Users\saraj\OneDrive\Documents\Documents\thesis\New folder\LEAD
+
+Traceback (most recent call last):
+  File "C:\Users\saraj\OneDrive\Documents\Documents\thesis\New folder\LEAD\run.py", line 3, in <module>
+    import torch
+ModuleNotFoundError: No module named 'torch'

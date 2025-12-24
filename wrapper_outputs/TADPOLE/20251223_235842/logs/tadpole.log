@@ -1,0 +1,38 @@
+Command: C:\Users\saraj\OneDrive\Documents\Documents\thesis\New folder\.venv\Scripts\python.exe C:\Users\saraj\OneDrive\Documents\Documents\thesis\New folder\TADPOLE\TADPOLE_D1_D2.py --spreadsheetFolder C:\Users\saraj\OneDrive\Documents\Documents\thesis\New folder\TADPOLE
+Working dir: C:\Users\saraj\OneDrive\Documents\Documents\thesis\New folder\TADPOLE
+
+
+ERROR 1: The following required spreadsheets could not be found:
+	 * C:\Users\saraj\OneDrive\Documents\Documents\thesis\New folder\TADPOLE/ADNIMERGE.csv
+	 * C:\Users\saraj\OneDrive\Documents\Documents\thesis\New folder\TADPOLE/ADNIMERGE_DICT.csv
+	 * C:\Users\saraj\OneDrive\Documents\Documents\thesis\New folder\TADPOLE/DXSUM_PDXCONV_ADNIALL.csv
+	 * C:\Users\saraj\OneDrive\Documents\Documents\thesis\New folder\TADPOLE/UCSFFSL_02_01_16.csv
+	 * C:\Users\saraj\OneDrive\Documents\Documents\thesis\New folder\TADPOLE/UCSFFSL_DICT_11_01_13.csv
+	 * C:\Users\saraj\OneDrive\Documents\Documents\thesis\New folder\TADPOLE/UCSFFSL51ALL_08_01_16.csv
+	 * C:\Users\saraj\OneDrive\Documents\Documents\thesis\New folder\TADPOLE/UCSFFSL51ALL_DICT_05_04_16.csv
+	 * C:\Users\saraj\OneDrive\Documents\Documents\thesis\New folder\TADPOLE/UCSFFSX_11_02_15.csv
+	 * C:\Users\saraj\OneDrive\Documents\Documents\thesis\New folder\TADPOLE/UCSFFSX_DICT_08_01_14.csv
+	 * C:\Users\saraj\OneDrive\Documents\Documents\thesis\New folder\TADPOLE/UCSFFSX51_08_01_16.csv
+	 * C:\Users\saraj\OneDrive\Documents\Documents\thesis\New folder\TADPOLE/UCSFFSX51_DICT_08_01_14.csv
+	 * C:\Users\saraj\OneDrive\Documents\Documents\thesis\New folder\TADPOLE/BAIPETNMRC_09_12_16.csv
+	 * C:\Users\saraj\OneDrive\Documents\Documents\thesis\New folder\TADPOLE/BAIPETNMRC_DICT_09_12_16.csv
+	 * C:\Users\saraj\OneDrive\Documents\Documents\thesis\New folder\TADPOLE/UCBERKELEYAV45_10_17_16.csv
+	 * C:\Users\saraj\OneDrive\Documents\Documents\thesis\New folder\TADPOLE/UCBERKELEYAV45_DICT_06_15_16.csv
+	 * C:\Users\saraj\OneDrive\Documents\Documents\thesis\New folder\TADPOLE/UCBERKELEYAV1451_10_17_16.csv
+	 * C:\Users\saraj\OneDrive\Documents\Documents\thesis\New folder\TADPOLE/UCBERKELEYAV1451_DICT_10_17_16.csv
+	 * C:\Users\saraj\OneDrive\Documents\Documents\thesis\New folder\TADPOLE/DTIROI_04_30_14.csv
+	 * C:\Users\saraj\OneDrive\Documents\Documents\thesis\New folder\TADPOLE/DTIROI_DICT_04_30_14.csv
+	 * C:\Users\saraj\OneDrive\Documents\Documents\thesis\New folder\TADPOLE/UPENNBIOMK9_04_19_17.csv
+	 * C:\Users\saraj\OneDrive\Documents\Documents\thesis\New folder\TADPOLE/UPENNBIOMK9_DICT_04_19_17.csv 
+
+
+
+ERROR 2: D2 column file  C:\Users\saraj\OneDrive\Documents\Documents\thesis\New folder\TADPOLE/TADPOLE_D2_column.csv  could not be found. You need to first generate it using the MATLAB script TADPOLE_D2.m
+
+
+Traceback (most recent call last):
+  File "C:\Users\saraj\OneDrive\Documents\Documents\thesis\New folder\TADPOLE\TADPOLE_D1_D2.py", line 1337, in <module>
+    checkSpreadsheetsExist(spreadsheetList, d2File)
+  File "C:\Users\saraj\OneDrive\Documents\Documents\thesis\New folder\TADPOLE\TADPOLE_D1_D2.py", line 1285, in checkSpreadsheetsExist
+    raise ValueError('Several spreadsheets are missing')
+ValueError: Several spreadsheets are missing
