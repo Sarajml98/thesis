@@ -133,14 +133,16 @@ else:
         p.info(f"**{name.upper()}** — Pending\n\nClick 'Run All Analyses' to start.")
     progress_bar.progress(0)
 
-# --- Persistent Subject-level check ---
-st.markdown("---")
-st.subheader("Check Individual Subject")
-results = st.session_state.get("last_results")
-# If no results in session, try to load from outputs/aggregate_results.json or individual summaries
-if not results:
+@st.cache_data
+def load_results_data():
+    """Load all result files from the outputs directory, caching the result.
+
+    This prevents expensive file I/O on every UI interaction, making the app
+    more responsive when checking individual subjects.
+    """
     results = {}
     import json
+    import csv
     out_dir = Path.cwd() / "outputs"
     agg = out_dir / "aggregate_results.json"
     if agg.exists():
@@ -148,7 +150,6 @@ if not results:
             with open(agg, "r", encoding="utf-8") as f:
                 results = json.load(f)
             st.info("Loaded previous results from outputs/aggregate_results.json")
-            st.session_state["last_results"] = results
         except Exception:
             results = {}
     else:
@@ -162,7 +163,6 @@ if not results:
                     # try to attach predictions if present
                     preds_path = out_dir / f"{name}_predictions.csv"
                     if preds_path.exists():
-                        import csv
                         rows = []
                         with open(preds_path, "r", encoding="utf-8") as pf:
                             reader = csv.DictReader(pf)
@@ -173,8 +173,22 @@ if not results:
                         results[name]["predictions"] = rows
                 except Exception:
                     pass
-    if not results:
-        st.info("No results available. Run 'Run All Analyses' to produce results, or load previous results.")
+    return results
+
+
+# --- Persistent Subject-level check ---
+st.markdown("---")
+st.subheader("Check Individual Subject")
+
+# If results are already in session state from a recent run, use them.
+# Otherwise, load from disk using the cached function.
+if "last_results" not in st.session_state:
+    st.session_state["last_results"] = load_results_data()
+
+results = st.session_state.get("last_results")
+
+if not results:
+    st.info("No results available. Run 'Run All Analyses' to produce results, or load previous results.")
 
 # build subject list from available predictions across modules
 subjects_set = set()
