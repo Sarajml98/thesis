@@ -133,12 +133,12 @@ else:
         p.info(f"**{name.upper()}** — Pending\n\nClick 'Run All Analyses' to start.")
     progress_bar.progress(0)
 
-# --- Persistent Subject-level check ---
-st.markdown("---")
-st.subheader("Check Individual Subject")
-results = st.session_state.get("last_results")
-# If no results in session, try to load from outputs/aggregate_results.json or individual summaries
-if not results:
+# --- UTILITY FUNCTIONS ---
+@st.cache_data
+def load_results():
+    """Load previous results from outputs/aggregate_results.json or individual summaries."""
+    # This is an expensive file I/O operation, so it's cached to avoid re-reading on every UI interaction.
+    # The cache is invalidated only when the underlying files in the `outputs` directory change.
     results = {}
     import json
     out_dir = Path.cwd() / "outputs"
@@ -148,7 +148,6 @@ if not results:
             with open(agg, "r", encoding="utf-8") as f:
                 results = json.load(f)
             st.info("Loaded previous results from outputs/aggregate_results.json")
-            st.session_state["last_results"] = results
         except Exception:
             results = {}
     else:
@@ -173,7 +172,19 @@ if not results:
                         results[name]["predictions"] = rows
                 except Exception:
                     pass
-    if not results:
+    return results
+
+
+# --- Persistent Subject-level check ---
+st.markdown("---")
+st.subheader("Check Individual Subject")
+results = st.session_state.get("last_results")
+# If no results in session, try to load from outputs/aggregate_results.json or individual summaries
+if not results:
+    results = load_results()
+    if results:
+        st.session_state["last_results"] = results
+    else:
         st.info("No results available. Run 'Run All Analyses' to produce results, or load previous results.")
 
 # build subject list from available predictions across modules
