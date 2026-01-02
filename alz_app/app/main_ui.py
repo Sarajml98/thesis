@@ -134,13 +134,16 @@ else:
     progress_bar.progress(0)
 
 # --- Persistent Subject-level check ---
-st.markdown("---")
-st.subheader("Check Individual Subject")
-results = st.session_state.get("last_results")
-# If no results in session, try to load from outputs/aggregate_results.json or individual summaries
-if not results:
+
+@st.cache_data
+def load_previous_results():
+    """
+    Load previous analysis results from the 'outputs' directory.
+    This function is cached to avoid expensive file I/O on every re-run.
+    """
     results = {}
     import json
+    import csv
     out_dir = Path.cwd() / "outputs"
     agg = out_dir / "aggregate_results.json"
     if agg.exists():
@@ -148,7 +151,6 @@ if not results:
             with open(agg, "r", encoding="utf-8") as f:
                 results = json.load(f)
             st.info("Loaded previous results from outputs/aggregate_results.json")
-            st.session_state["last_results"] = results
         except Exception:
             results = {}
     else:
@@ -162,7 +164,6 @@ if not results:
                     # try to attach predictions if present
                     preds_path = out_dir / f"{name}_predictions.csv"
                     if preds_path.exists():
-                        import csv
                         rows = []
                         with open(preds_path, "r", encoding="utf-8") as pf:
                             reader = csv.DictReader(pf)
@@ -173,8 +174,18 @@ if not results:
                         results[name]["predictions"] = rows
                 except Exception:
                     pass
+    return results
+
+st.markdown("---")
+st.subheader("Check Individual Subject")
+results = st.session_state.get("last_results")
+# If no results in session, try to load from outputs/aggregate_results.json or individual summaries
+if not results:
+    results = load_previous_results()
     if not results:
         st.info("No results available. Run 'Run All Analyses' to produce results, or load previous results.")
+    else:
+        st.session_state["last_results"] = results
 
 # build subject list from available predictions across modules
 subjects_set = set()
