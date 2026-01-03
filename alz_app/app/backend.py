@@ -3,6 +3,7 @@
 The `run_all_analyses` function accepts a `progress_hook(module, status, fraction, msg)`
 callable used by the UI to get live updates while the work runs.
 """
+import streamlit as st
 from pathlib import Path
 from . import mri_pet_module, eeg_module, adni_module, tadpole_module, proteomics_module
 
@@ -48,6 +49,9 @@ def run_all_analyses(data_root: str, simulate_if_missing: bool = True, progress_
     return results
 
 
+# Bolt ⚡: Cache the results of this expensive function to avoid re-running it on every UI interaction.
+# This will significantly improve the performance of the app, especially when dealing with large datasets.
+@st.cache_data
 def predict_subject(subject_id: str, results: dict, threshold: float = 0.5) -> dict:
     """Predict a single subject by aggregating module predictions.
 
