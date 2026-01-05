@@ -16,6 +16,52 @@ from app import backend, summaries
 
 st.set_page_config(page_title="AlzMultiModal Analyzer", layout="wide", initial_sidebar_state="expanded")
 
+
+# ⚡ Bolt: Cache disk I/O to avoid re-reading on every UI interaction.
+# This function reads multiple JSON and CSV files from the 'outputs' directory.
+# Caching it prevents expensive file operations on every single UI update.
+@st.cache_data
+def load_results(out_dir_str: str) -> dict:
+    """Load results from disk, preferring aggregate file or loading per-module summaries."""
+    results = {}
+    import json
+    import csv
+    from pathlib import Path
+
+    out_dir = Path(out_dir_str)
+    agg = out_dir / "aggregate_results.json"
+    if agg.exists():
+        try:
+            with open(agg, "r", encoding="utf-8") as f:
+                results = json.load(f)
+            st.info("Loaded previous results from outputs/aggregate_results.json")
+            return results
+        except Exception:
+            results = {}  # In case of malformed JSON, fall back to per-module files
+
+    # try to load per-module summary files if aggregate is missing or failed
+    for name in ["mri_pet", "eeg", "adni", "tadpole", "proteomics"]:
+        summary_path = out_dir / f"{name}_summary.json"
+        if summary_path.exists():
+            try:
+                with open(summary_path, "r", encoding="utf-8") as f:
+                    results[name] = json.load(f)
+                # try to attach predictions if present
+                preds_path = out_dir / f"{name}_predictions.csv"
+                if preds_path.exists():
+                    rows = []
+                    with open(preds_path, "r", encoding="utf-8") as pf:
+                        reader = csv.DictReader(pf)
+                        for row in reader:
+                            # normalize probability
+                            row["probability"] = float(row.get("probability", 0.0))
+                            rows.append({"subject_id": row.get("subject_id"), "predicted_label": row.get("predicted_label"), "probability": row.get("probability")})
+                    results[name]["predictions"] = rows
+            except Exception:
+                pass  # Ignore errors for individual files
+    return results
+
+
 # ----- Sidebar -----
 st.sidebar.title("AlzMultiModal Analyzer")
 st.sidebar.caption("Multi-modal AD analysis (demo). Choose data folder and run analyses.")
@@ -137,43 +183,12 @@ else:
 st.markdown("---")
 st.subheader("Check Individual Subject")
 results = st.session_state.get("last_results")
-# If no results in session, try to load from outputs/aggregate_results.json or individual summaries
+# If no results in session, try to load from outputs/ using the cached function
 if not results:
-    results = {}
-    import json
-    out_dir = Path.cwd() / "outputs"
-    agg = out_dir / "aggregate_results.json"
-    if agg.exists():
-        try:
-            with open(agg, "r", encoding="utf-8") as f:
-                results = json.load(f)
-            st.info("Loaded previous results from outputs/aggregate_results.json")
-            st.session_state["last_results"] = results
-        except Exception:
-            results = {}
+    results = load_results(str(Path.cwd() / "outputs"))
+    if results:
+        st.session_state["last_results"] = results
     else:
-        # try to load per-module summary files
-        for name in ["mri_pet", "eeg", "adni", "tadpole", "proteomics"]:
-            summary_path = out_dir / f"{name}_summary.json"
-            if summary_path.exists():
-                try:
-                    with open(summary_path, "r", encoding="utf-8") as f:
-                        results[name] = json.load(f)
-                    # try to attach predictions if present
-                    preds_path = out_dir / f"{name}_predictions.csv"
-                    if preds_path.exists():
-                        import csv
-                        rows = []
-                        with open(preds_path, "r", encoding="utf-8") as pf:
-                            reader = csv.DictReader(pf)
-                            for row in reader:
-                                # normalize probability
-                                row["probability"] = float(row.get("probability", 0.0))
-                                rows.append({"subject_id": row.get("subject_id"), "predicted_label": row.get("predicted_label"), "probability": row.get("probability")})
-                        results[name]["predictions"] = rows
-                except Exception:
-                    pass
-    if not results:
         st.info("No results available. Run 'Run All Analyses' to produce results, or load previous results.")
 
 # build subject list from available predictions across modules
