@@ -133,14 +133,13 @@ else:
         p.info(f"**{name.upper()}** — Pending\n\nClick 'Run All Analyses' to start.")
     progress_bar.progress(0)
 
-# --- Persistent Subject-level check ---
-st.markdown("---")
-st.subheader("Check Individual Subject")
-results = st.session_state.get("last_results")
-# If no results in session, try to load from outputs/aggregate_results.json or individual summaries
-if not results:
+@st.cache_data
+def load_previous_results():
+    # This is an expensive file I/O operation, so we cache it.
+    """Load previous results from outputs/ folder, looking for aggregate or per-module files."""
     results = {}
     import json
+    import csv
     out_dir = Path.cwd() / "outputs"
     agg = out_dir / "aggregate_results.json"
     if agg.exists():
@@ -148,9 +147,9 @@ if not results:
             with open(agg, "r", encoding="utf-8") as f:
                 results = json.load(f)
             st.info("Loaded previous results from outputs/aggregate_results.json")
-            st.session_state["last_results"] = results
+            return results
         except Exception:
-            results = {}
+            return {}  # on error, return empty
     else:
         # try to load per-module summary files
         for name in ["mri_pet", "eeg", "adni", "tadpole", "proteomics"]:
@@ -162,7 +161,6 @@ if not results:
                     # try to attach predictions if present
                     preds_path = out_dir / f"{name}_predictions.csv"
                     if preds_path.exists():
-                        import csv
                         rows = []
                         with open(preds_path, "r", encoding="utf-8") as pf:
                             reader = csv.DictReader(pf)
@@ -172,8 +170,20 @@ if not results:
                                 rows.append({"subject_id": row.get("subject_id"), "predicted_label": row.get("predicted_label"), "probability": row.get("probability")})
                         results[name]["predictions"] = rows
                 except Exception:
-                    pass
-    if not results:
+                    pass  # ignore individual file errors
+    return results
+
+
+# --- Persistent Subject-level check ---
+st.markdown("---")
+st.subheader("Check Individual Subject")
+results = st.session_state.get("last_results")
+# If no results in session, try to load from outputs/aggregate_results.json or individual summaries
+if not results:
+    results = load_previous_results()
+    if results:
+        st.session_state["last_results"] = results
+    else:
         st.info("No results available. Run 'Run All Analyses' to produce results, or load previous results.")
 
 # build subject list from available predictions across modules
