@@ -134,11 +134,13 @@ else:
     progress_bar.progress(0)
 
 # --- Persistent Subject-level check ---
-st.markdown("---")
-st.subheader("Check Individual Subject")
-results = st.session_state.get("last_results")
-# If no results in session, try to load from outputs/aggregate_results.json or individual summaries
-if not results:
+
+# ⚡ Bolt: Cache disk I/O to avoid re-reading on every interaction.
+# This function reads multiple JSON and CSV files. Caching its result
+# prevents expensive file operations on Streamlit's reruns.
+@st.cache_data
+def load_results():
+    """Load aggregate or per-module results from the outputs/ folder."""
     results = {}
     import json
     out_dir = Path.cwd() / "outputs"
@@ -148,7 +150,6 @@ if not results:
             with open(agg, "r", encoding="utf-8") as f:
                 results = json.load(f)
             st.info("Loaded previous results from outputs/aggregate_results.json")
-            st.session_state["last_results"] = results
         except Exception:
             results = {}
     else:
@@ -173,6 +174,16 @@ if not results:
                         results[name]["predictions"] = rows
                 except Exception:
                     pass
+    return results
+
+st.markdown("---")
+st.subheader("Check Individual Subject")
+results = st.session_state.get("last_results")
+# If no results in session, try to load from outputs/aggregate_results.json or individual summaries
+if not results:
+    results = load_results()
+    if results:
+        st.session_state["last_results"] = results
     if not results:
         st.info("No results available. Run 'Run All Analyses' to produce results, or load previous results.")
 
