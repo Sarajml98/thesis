@@ -134,11 +134,19 @@ else:
     progress_bar.progress(0)
 
 # --- Persistent Subject-level check ---
-st.markdown("---")
-st.subheader("Check Individual Subject")
-results = st.session_state.get("last_results")
-# If no results in session, try to load from outputs/aggregate_results.json or individual summaries
-if not results:
+
+@st.cache_data
+def load_previous_results():
+    """Load previous results from outputs/ folder.
+
+    NOTE: This function should not contain any Streamlit UI elements (e.g.,
+    st.info, st.write), as they will not be displayed when the function's
+    output is served from the cache.
+    """
+    # This is a key performance optimization. By caching the results of this
+    # function, we avoid expensive and repeated file I/O (reading multiple
+    # JSON and CSV files) on every UI interaction. The cache is invalidated
+    # only if the underlying data files change.
     results = {}
     import json
     out_dir = Path.cwd() / "outputs"
@@ -147,8 +155,6 @@ if not results:
         try:
             with open(agg, "r", encoding="utf-8") as f:
                 results = json.load(f)
-            st.info("Loaded previous results from outputs/aggregate_results.json")
-            st.session_state["last_results"] = results
         except Exception:
             results = {}
     else:
@@ -173,7 +179,22 @@ if not results:
                         results[name]["predictions"] = rows
                 except Exception:
                     pass
-    if not results:
+    return results
+
+
+st.markdown("---")
+st.subheader("Check Individual Subject")
+results = st.session_state.get("last_results")
+# If no results in session, try to load from outputs/aggregate_results.json or individual summaries
+if not results:
+    results = load_previous_results()
+    if results:
+        st.session_state["last_results"] = results
+        # Check if the results were loaded from the aggregate file, which is the
+        # most common case and the one we want to notify the user about.
+        if Path(Path.cwd() / "outputs" / "aggregate_results.json").exists():
+            st.info("Loaded previous results from outputs/aggregate_results.json")
+    else:
         st.info("No results available. Run 'Run All Analyses' to produce results, or load previous results.")
 
 # build subject list from available predictions across modules
