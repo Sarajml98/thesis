@@ -137,8 +137,12 @@ else:
 st.markdown("---")
 st.subheader("Check Individual Subject")
 results = st.session_state.get("last_results")
-# If no results in session, try to load from outputs/aggregate_results.json or individual summaries
-if not results:
+# ⚡ Bolt: Cache disk I/O to avoid re-reading on every UI interaction.
+# This function reads multiple JSON and CSV files from the `outputs` directory.
+# Caching this prevents expensive file operations on every Streamlit re-run.
+@st.cache_data
+def load_results_from_disk():
+    """Load results from output files, trying aggregate first, then per-module."""
     results = {}
     import json
     out_dir = Path.cwd() / "outputs"
@@ -148,10 +152,9 @@ if not results:
             with open(agg, "r", encoding="utf-8") as f:
                 results = json.load(f)
             st.info("Loaded previous results from outputs/aggregate_results.json")
-            st.session_state["last_results"] = results
         except Exception:
-            results = {}
-    else:
+            results = {}  # Fallback to per-module if aggregate is corrupt
+    if not results:
         # try to load per-module summary files
         for name in ["mri_pet", "eeg", "adni", "tadpole", "proteomics"]:
             summary_path = out_dir / f"{name}_summary.json"
@@ -172,8 +175,15 @@ if not results:
                                 rows.append({"subject_id": row.get("subject_id"), "predicted_label": row.get("predicted_label"), "probability": row.get("probability")})
                         results[name]["predictions"] = rows
                 except Exception:
-                    pass
-    if not results:
+                    pass  # ignore corrupt files
+    return results
+
+# If no results in session, try to load from outputs/aggregate_results.json or individual summaries
+if not results:
+    results = load_results_from_disk()
+    if results:
+        st.session_state["last_results"] = results
+    else:
         st.info("No results available. Run 'Run All Analyses' to produce results, or load previous results.")
 
 # build subject list from available predictions across modules
