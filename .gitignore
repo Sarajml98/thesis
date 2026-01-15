@@ -42,5 +42,8 @@ checkpoints/
 *.nii
 *.nii.gz
 
+# Log files
+*.log
+
 # Keep repo-specific exceptions here
 # End of .gitignore
