@@ -44,3 +44,4 @@ checkpoints/
 
 # Keep repo-specific exceptions here
 # End of .gitignore
+*.log
