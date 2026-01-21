@@ -134,11 +134,14 @@ else:
     progress_bar.progress(0)
 
 # --- Persistent Subject-level check ---
-st.markdown("---")
-st.subheader("Check Individual Subject")
-results = st.session_state.get("last_results")
-# If no results in session, try to load from outputs/aggregate_results.json or individual summaries
-if not results:
+
+# ⚡ Bolt: Cache disk reads to speed up UI
+# - What: Caching file reads for previous results.
+# - Why: Prevents re-reading multiple files on every UI interaction.
+# - Impact: Makes subject-level checks instantaneous after the first load.
+@st.cache_data
+def load_previous_results():
+    """Load results from previous runs from the outputs/ folder."""
     results = {}
     import json
     out_dir = Path.cwd() / "outputs"
@@ -147,10 +150,9 @@ if not results:
         try:
             with open(agg, "r", encoding="utf-8") as f:
                 results = json.load(f)
-            st.info("Loaded previous results from outputs/aggregate_results.json")
-            st.session_state["last_results"] = results
+            st.toast("Loaded previous results from outputs/aggregate_results.json")
         except Exception:
-            results = {}
+            results = {} # resilient to malformed json
     else:
         # try to load per-module summary files
         for name in ["mri_pet", "eeg", "adni", "tadpole", "proteomics"]:
@@ -172,8 +174,18 @@ if not results:
                                 rows.append({"subject_id": row.get("subject_id"), "predicted_label": row.get("predicted_label"), "probability": row.get("probability")})
                         results[name]["predictions"] = rows
                 except Exception:
-                    pass
-    if not results:
+                    pass # resilient to malformed json/csv
+    return results
+
+st.markdown("---")
+st.subheader("Check Individual Subject")
+results = st.session_state.get("last_results")
+# If no results in session, try to load from outputs/aggregate_results.json or individual summaries
+if not results:
+    results = load_previous_results()
+    if results:
+        st.session_state["last_results"] = results
+    else:
         st.info("No results available. Run 'Run All Analyses' to produce results, or load previous results.")
 
 # build subject list from available predictions across modules
