@@ -2,6 +2,7 @@
 .DS_Store
 Thumbs.db
 .vscode/
+*.log
 
 # Python
 __pycache__/
