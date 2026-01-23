@@ -136,23 +136,38 @@ else:
 # --- Persistent Subject-level check ---
 st.markdown("---")
 st.subheader("Check Individual Subject")
-results = st.session_state.get("last_results")
-# If no results in session, try to load from outputs/aggregate_results.json or individual summaries
-if not results:
+
+
+# ⚡ Bolt Optimization: Cache result loading from disk
+# What: Encapsulated the logic for reading all JSON/CSV results from the
+#       'outputs/' directory into a single function.
+# Why: The original code re-read multiple files from disk on every single
+#      UI interaction, causing noticeable slowdowns.
+# Impact: This function's output is now cached. File I/O runs only ONCE.
+#         Subsequent UI interactions will be near-instant, reading from
+#         an in-memory cache instead of disk.
+@st.cache_data
+def load_results_from_disk():
+    """Load all result summaries and predictions from the outputs/ folder.
+
+    This function is cached to prevent expensive and unnecessary file I/O on
+    every UI interaction. It reads the aggregate results JSON and then tries
+    to supplement it with any individual module summary/prediction files.
+    """
     results = {}
     import json
+    import csv
     out_dir = Path.cwd() / "outputs"
     agg = out_dir / "aggregate_results.json"
     if agg.exists():
         try:
             with open(agg, "r", encoding="utf-8") as f:
                 results = json.load(f)
-            st.info("Loaded previous results from outputs/aggregate_results.json")
-            st.session_state["last_results"] = results
         except Exception:
-            results = {}
-    else:
-        # try to load per-module summary files
+            results = {}  # On error, fall through to per-module loading
+
+    # If aggregate file was missing or failed, try to load per-module summary files
+    if not results:
         for name in ["mri_pet", "eeg", "adni", "tadpole", "proteomics"]:
             summary_path = out_dir / f"{name}_summary.json"
             if summary_path.exists():
@@ -162,7 +177,6 @@ if not results:
                     # try to attach predictions if present
                     preds_path = out_dir / f"{name}_predictions.csv"
                     if preds_path.exists():
-                        import csv
                         rows = []
                         with open(preds_path, "r", encoding="utf-8") as pf:
                             reader = csv.DictReader(pf)
@@ -172,7 +186,17 @@ if not results:
                                 rows.append({"subject_id": row.get("subject_id"), "predicted_label": row.get("predicted_label"), "probability": row.get("probability")})
                         results[name]["predictions"] = rows
                 except Exception:
-                    pass
+                    pass  # ignore errors on individual files
+    return results
+
+
+results = st.session_state.get("last_results")
+# If no results in session, try to load from outputs/
+if not results:
+    results = load_results_from_disk()
+    if results:
+        st.info("Loaded previous results from outputs/")
+        st.session_state["last_results"] = results
     if not results:
         st.info("No results available. Run 'Run All Analyses' to produce results, or load previous results.")
 
