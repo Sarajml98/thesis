@@ -133,22 +133,25 @@ else:
         p.info(f"**{name.upper()}** — Pending\n\nClick 'Run All Analyses' to start.")
     progress_bar.progress(0)
 
-# --- Persistent Subject-level check ---
-st.markdown("---")
-st.subheader("Check Individual Subject")
-results = st.session_state.get("last_results")
-# If no results in session, try to load from outputs/aggregate_results.json or individual summaries
-if not results:
+# ⚡ Bolt: Caching results to optimize UI
+# What: This function loads all analysis results from the `outputs` directory.
+# Why:  Reading multiple files from disk on every UI interaction is slow.
+# Impact: Caching prevents re-reading, making subject checks instantaneous after the first load.
+@st.cache_data
+def load_cached_results():
+    """Load all results from files in outputs/, caching the result."""
     results = {}
     import json
-    out_dir = Path.cwd() / "outputs"
+    import csv
+    from pathlib import Path
+    # Bolt ⚡: Use absolute path based on file location (`BASE_DIR`) instead of
+    # `Path.cwd()` to ensure deterministic path resolution for Streamlit's cache.
+    out_dir = BASE_DIR / "outputs"
     agg = out_dir / "aggregate_results.json"
     if agg.exists():
         try:
             with open(agg, "r", encoding="utf-8") as f:
                 results = json.load(f)
-            st.info("Loaded previous results from outputs/aggregate_results.json")
-            st.session_state["last_results"] = results
         except Exception:
             results = {}
     else:
@@ -162,7 +165,6 @@ if not results:
                     # try to attach predictions if present
                     preds_path = out_dir / f"{name}_predictions.csv"
                     if preds_path.exists():
-                        import csv
                         rows = []
                         with open(preds_path, "r", encoding="utf-8") as pf:
                             reader = csv.DictReader(pf)
@@ -173,7 +175,20 @@ if not results:
                         results[name]["predictions"] = rows
                 except Exception:
                     pass
-    if not results:
+    return results
+
+
+# --- Persistent Subject-level check ---
+st.markdown("---")
+st.subheader("Check Individual Subject")
+results = st.session_state.get("last_results")
+# If no results in session, try to load from outputs/
+if not results:
+    results = load_cached_results()
+    if results:
+        st.session_state["last_results"] = results
+        st.toast("Loaded previous results from the 'outputs' directory")
+    else:
         st.info("No results available. Run 'Run All Analyses' to produce results, or load previous results.")
 
 # build subject list from available predictions across modules
