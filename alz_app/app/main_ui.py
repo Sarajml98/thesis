@@ -136,44 +136,61 @@ else:
 # --- Persistent Subject-level check ---
 st.markdown("---")
 st.subheader("Check Individual Subject")
-results = st.session_state.get("last_results")
-# If no results in session, try to load from outputs/aggregate_results.json or individual summaries
-if not results:
+
+# ⚡ Bolt: Caching loaded results to improve performance
+# What: This function loads all result files (JSON, CSV) from the `outputs`
+#       directory. It's wrapped with Streamlit's `@st.cache_data` decorator.
+# Why:  Previously, these files were read from disk on EVERY UI interaction
+#       (e.g., widget click), causing noticeable slowdowns. The filesystem
+#       I/O is a classic bottleneck in Streamlit apps.
+# Impact: Caching ensures the data is loaded from disk only ONCE. Subsequent
+#         interactions will read directly from the in-memory cache, making
+#         the UI feel significantly more responsive, especially when dealing
+#         with many result files.
+@st.cache_data
+def load_results_from_disk():
+    """Load all results from the outputs folder. Decorated for caching."""
     results = {}
     import json
-    out_dir = Path.cwd() / "outputs"
+    import csv
+    out_dir = BASE_DIR / "outputs"  # Use BASE_DIR for deterministic path
     agg = out_dir / "aggregate_results.json"
     if agg.exists():
         try:
             with open(agg, "r", encoding="utf-8") as f:
                 results = json.load(f)
-            st.info("Loaded previous results from outputs/aggregate_results.json")
-            st.session_state["last_results"] = results
+            st.toast("Loaded previous results from outputs/aggregate_results.json")
+            return results
         except Exception:
             results = {}
+
+    # if aggregate doesn't exist, try to load per-module summary files
+    for name in ["mri_pet", "eeg", "adni", "tadpole", "proteomics"]:
+        summary_path = out_dir / f"{name}_summary.json"
+        if summary_path.exists():
+            try:
+                with open(summary_path, "r", encoding="utf-8") as f:
+                    results[name] = json.load(f)
+                # try to attach predictions if present
+                preds_path = out_dir / f"{name}_predictions.csv"
+                if preds_path.exists():
+                    rows = []
+                    with open(preds_path, "r", encoding="utf-8") as pf:
+                        reader = csv.DictReader(pf)
+                        for row in reader:
+                            row["probability"] = float(row.get("probability", 0.0))
+                            rows.append({"subject_id": row.get("subject_id"), "predicted_label": row.get("predicted_label"), "probability": row.get("probability")})
+                    results[name]["predictions"] = rows
+            except Exception:
+                pass # ignore file-level errors
+    return results
+
+results = st.session_state.get("last_results")
+if not results:
+    results = load_results_from_disk()
+    if results:
+        st.session_state["last_results"] = results
     else:
-        # try to load per-module summary files
-        for name in ["mri_pet", "eeg", "adni", "tadpole", "proteomics"]:
-            summary_path = out_dir / f"{name}_summary.json"
-            if summary_path.exists():
-                try:
-                    with open(summary_path, "r", encoding="utf-8") as f:
-                        results[name] = json.load(f)
-                    # try to attach predictions if present
-                    preds_path = out_dir / f"{name}_predictions.csv"
-                    if preds_path.exists():
-                        import csv
-                        rows = []
-                        with open(preds_path, "r", encoding="utf-8") as pf:
-                            reader = csv.DictReader(pf)
-                            for row in reader:
-                                # normalize probability
-                                row["probability"] = float(row.get("probability", 0.0))
-                                rows.append({"subject_id": row.get("subject_id"), "predicted_label": row.get("predicted_label"), "probability": row.get("probability")})
-                        results[name]["predictions"] = rows
-                except Exception:
-                    pass
-    if not results:
         st.info("No results available. Run 'Run All Analyses' to produce results, or load previous results.")
 
 # build subject list from available predictions across modules
