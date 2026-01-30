@@ -4,6 +4,8 @@ The `run_all_analyses` function accepts a `progress_hook(module, status, fractio
 callable used by the UI to get live updates while the work runs.
 """
 from pathlib import Path
+import json
+import csv
 from . import mri_pet_module, eeg_module, adni_module, tadpole_module, proteomics_module
 
 BASE_DIR = Path(__file__).resolve().parents[1]
@@ -40,7 +42,6 @@ def run_all_analyses(data_root: str, simulate_if_missing: bool = True, progress_
             progress_hook(name, summary.get("status", "finished"), i / total, summary.get("interpretation", ""))
 
     # Optionally, write an aggregate JSON
-    import json
     (OUTPUTS_DIR / "aggregate_results.json").parent.mkdir(parents=True, exist_ok=True)
     with open(OUTPUTS_DIR / "aggregate_results.json", "w", encoding="utf-8") as f:
         json.dump(results, f, indent=2)
@@ -58,9 +59,6 @@ def predict_subject(subject_id: str, results: dict, threshold: float = 0.5) -> d
 
     Returns a dict with per-module predictions, ensemble probability and label.
     """
-    import json
-    from pathlib import Path
-
     per_module = {}
     probs = []
     weights = []
@@ -70,15 +68,19 @@ def predict_subject(subject_id: str, results: dict, threshold: float = 0.5) -> d
         pred = None
         # try inline predictions first
         preds = summary.get("predictions")
-        if preds:
+        if isinstance(preds, dict):
+            # O(1) lookup
+            pred = preds.get(subject_id)
+        elif isinstance(preds, list):
+            # Fallback O(N) lookup
             for p in preds:
                 if p.get("subject_id") == subject_id:
                     pred = p
                     break
+
         # else try to read predictions CSV
         if pred is None and summary.get("predictions_path"):
             try:
-                import csv
                 with open(summary["predictions_path"], "r", encoding="utf-8") as f:
                     reader = csv.DictReader(f)
                     for row in reader:
