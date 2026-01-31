@@ -1,0 +1,3 @@
+## 2025-12-24 - Optimization of Subject Lookups and Result Loading
+**Learning:** In multi-modal analysis apps with many subjects, O(N) list scans for per-subject data become a significant bottleneck as the subject count increases. Transforming these lists into dictionaries (O(1) lookups) early in the pipeline provides a massive performance boost for per-subject reporting. Additionally, Streamlit apps benefit greatly from caching expensive I/O operations with `@st.cache_data`, but care must be taken to use deterministic paths (like those derived from `__file__`) to avoid caching errors.
+**Action:** Always prefer dictionary-based lookups for indexed data and use `@st.cache_data` for any file I/O that doesn't change during a user session.
