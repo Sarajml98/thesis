@@ -76,18 +76,19 @@ def run_proteomics(data_root: str, simulate_if_missing: bool = True, progress_ho
     if not subjects:
         subjects = [f"SUBJ{str(i).zfill(3)}" for i in range(1, 11)]
     random.seed(46)
-    preds = []
+    preds = {}
     base = summary.get("metrics", {}).get("accuracy", 0.8)
     for s in subjects:
         prob = float(min(0.99, max(0.01, random.gauss(base, 0.14))))
         label = "AD" if prob >= 0.5 else "CN"
-        preds.append({"subject_id": s, "predicted_label": label, "probability": round(prob, 3)})
+        # ⚡ Bolt: Using dictionary for O(1) subject lookup
+        preds[s] = {"subject_id": s, "predicted_label": label, "probability": round(prob, 3)}
     preds_path = Path(OUTPUTS_DIR) / f"{module_name}_predictions.csv"
     preds_path.parent.mkdir(parents=True, exist_ok=True)
     with open(preds_path, "w", newline='', encoding="utf-8") as f:
         writer = csv.DictWriter(f, fieldnames=["subject_id", "predicted_label", "probability"])
         writer.writeheader()
-        writer.writerows(preds)
+        writer.writerows(preds.values())
     summary["predictions_path"] = str(preds_path)
     summary["predictions"] = preds
 

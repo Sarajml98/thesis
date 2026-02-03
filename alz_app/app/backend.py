@@ -71,10 +71,15 @@ def predict_subject(subject_id: str, results: dict, threshold: float = 0.5) -> d
         # try inline predictions first
         preds = summary.get("predictions")
         if preds:
-            for p in preds:
-                if p.get("subject_id") == subject_id:
-                    pred = p
-                    break
+            # ⚡ Bolt: Fast O(1) lookup if preds is a dictionary
+            if isinstance(preds, dict):
+                pred = preds.get(subject_id)
+            else:
+                # Fallback to O(N) linear search for list-based predictions
+                for p in preds:
+                    if p.get("subject_id") == subject_id:
+                        pred = p
+                        break
         # else try to read predictions CSV
         if pred is None and summary.get("predictions_path"):
             try:
