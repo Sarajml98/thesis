@@ -1,6 +1,7 @@
 """CLI helper to load outputs and show per-subject report (debugging aid)."""
 import argparse
 import json
+import csv
 from pathlib import Path
 from app import backend
 
@@ -22,13 +23,18 @@ else:
             results[name] = json.load(open(p, "r", encoding="utf-8"))
             preds = out / f"{name}_predictions.csv"
             if preds.exists():
-                import csv
                 rows = []
                 with open(preds, "r", encoding="utf-8") as f:
                     reader = csv.DictReader(f)
                     for row in reader:
                         rows.append({"subject_id": row.get("subject_id"), "predicted_label": row.get("predicted_label"), "probability": float(row.get("probability", 0))})
                 results[name]["predictions"] = rows
+
+# ⚡ Bolt Optimization: Ensure predictions are dictionaries for O(1) lookup in backend.predict_subject
+for mod_res in results.values():
+    preds = mod_res.get("predictions")
+    if preds and isinstance(preds, list):
+        mod_res["predictions"] = {p.get("subject_id"): p for p in preds if p.get("subject_id")}
 
 report = backend.predict_subject(args.subject_id, results)
 print(json.dumps(report, indent=2, ensure_ascii=False))
